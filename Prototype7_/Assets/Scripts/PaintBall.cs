@@ -12,8 +12,11 @@ public class PaintBall : MonoBehaviour
 {
     private static readonly Color[] PaintColors = new Color[]
     {
-        Color.red,
-        Color.green,
+        //Color.red,
+        // Color.green,
+       Color.black,
+       Color.black,
+       Color.black,
         Color.blue,
         Color.yellow,
         new Color(0.5f, 0f, 1f),    // purple
