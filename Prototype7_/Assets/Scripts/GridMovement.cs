@@ -5,6 +5,12 @@ public class GridMovement : MonoBehaviour
 {
     [Header("Grid Settings")]
     public float gridSize = 1f;
+    /// <summary>Y step size. When 0, falls back to gridSize.</summary>
+    public float gridSizeY = 0f;
+
+    [Header("Bounds")]
+    /// <summary>When true, the min/max values below are used directly instead of being calculated from the camera.</summary>
+    public bool useManualBounds = false;
     public int minX = -8, maxX = 8;
     public int minY = -4, maxY = 4;
 
@@ -33,7 +39,10 @@ public class GridMovement : MonoBehaviour
     // Colors
     private readonly Color readyColor = Color.white;
     private readonly Color dashColor = Color.red;
-    private readonly Color chargeColor = Color.green; 
+    private readonly Color chargeColor = Color.green;
+
+    /// <summary>Returns the effective Y step, falling back to gridSize when gridSizeY is not set.</summary>
+    private float EffectiveGridSizeY => gridSizeY > 0f ? gridSizeY : gridSize;
 
     void Awake()
     {
@@ -48,16 +57,19 @@ public class GridMovement : MonoBehaviour
 
         gridPos = new Vector2Int(
             Mathf.RoundToInt(transform.position.x / gridSize),
-            Mathf.RoundToInt(transform.position.y / gridSize)
+            Mathf.RoundToInt(transform.position.y / EffectiveGridSizeY)
         );
 
-        Camera cam = Camera.main;
-        float halfH = cam.orthographicSize;
-        float halfW = halfH * cam.aspect;
-        minX = Mathf.RoundToInt(-halfW / gridSize);
-        maxX = Mathf.RoundToInt( halfW / gridSize);
-        minY = Mathf.RoundToInt(-halfH / gridSize);
-        maxY = Mathf.RoundToInt( halfH / gridSize);
+        if (!useManualBounds)
+        {
+            Camera cam = Camera.main;
+            float halfH = cam.orthographicSize;
+            float halfW = halfH * cam.aspect;
+            minX = Mathf.RoundToInt(-halfW / gridSize);
+            maxX = Mathf.RoundToInt( halfW / gridSize);
+            minY = Mathf.RoundToInt(-halfH / EffectiveGridSizeY);
+            maxY = Mathf.RoundToInt( halfH / EffectiveGridSizeY);
+        }
     }
 
     void Update()
@@ -120,7 +132,7 @@ public class GridMovement : MonoBehaviour
         newPos.x = Mathf.Clamp(newPos.x, minX, maxX);
         newPos.y = Mathf.Clamp(newPos.y, minY, maxY);
         gridPos = newPos;
-        transform.position = new Vector3(gridPos.x * gridSize, gridPos.y * gridSize, 0f);
+        transform.position = new Vector3(gridPos.x * gridSize, gridPos.y * EffectiveGridSizeY, 0f);
     }
 
     void TryDash(Vector2Int direction)
@@ -129,7 +141,7 @@ public class GridMovement : MonoBehaviour
         newPos.x = Mathf.Clamp(newPos.x, minX, maxX);
         newPos.y = Mathf.Clamp(newPos.y, minY, maxY);
         gridPos = newPos;
-        transform.position = new Vector3(gridPos.x * gridSize, gridPos.y * gridSize, 0f);
+        transform.position = new Vector3(gridPos.x * gridSize, gridPos.y * EffectiveGridSizeY, 0f);
 
         onCooldown = true;
         cooldownTimer = 0f;
