@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -40,6 +41,9 @@ public class GridMovement : MonoBehaviour
     private readonly Color readyColor = Color.white;
     private readonly Color dashColor = Color.red;
     private readonly Color chargeColor = Color.green;
+
+    /// <summary>Fired every time the player lands on a new grid cell.</summary>
+    public event Action OnMoved;
 
     /// <summary>Returns the effective Y step, falling back to gridSize when gridSizeY is not set.</summary>
     private float EffectiveGridSizeY => gridSizeY > 0f ? gridSizeY : gridSize;
@@ -129,23 +133,47 @@ public class GridMovement : MonoBehaviour
     void TryMove(Vector2Int direction)
     {
         Vector2Int newPos = gridPos + direction;
-        newPos.x = Mathf.Clamp(newPos.x, minX, maxX);
-        newPos.y = Mathf.Clamp(newPos.y, minY, maxY);
+        if (!HasCellAt(newPos)) return;
         gridPos = newPos;
         transform.position = new Vector3(gridPos.x * gridSize, gridPos.y * EffectiveGridSizeY, 0f);
+        OnMoved?.Invoke();
     }
 
     void TryDash(Vector2Int direction)
     {
-        Vector2Int newPos = gridPos + direction * dashDistance;
-        newPos.x = Mathf.Clamp(newPos.x, minX, maxX);
-        newPos.y = Mathf.Clamp(newPos.y, minY, maxY);
-        gridPos = newPos;
+        // Step forward up to dashDistance, keeping the furthest valid cell reached.
+        Vector2Int bestPos = gridPos;
+        for (int step = 1; step <= dashDistance; step++)
+        {
+            Vector2Int candidate = gridPos + direction * step;
+            if (!HasCellAt(candidate)) break;
+            bestPos = candidate;
+        }
+
+        if (bestPos == gridPos) return;   // nowhere valid to dash — skip move and cooldown
+
+        gridPos = bestPos;
         transform.position = new Vector3(gridPos.x * gridSize, gridPos.y * EffectiveGridSizeY, 0f);
+        OnMoved?.Invoke();
 
         onCooldown = true;
         cooldownTimer = 0f;
         sr.color = dashColor;
+    }
+
+    /// <summary>
+    /// Returns true when a PaintCell collider exists at the given grid position.
+    /// Uses an exact-point overlap so adjacent cells are never accidentally matched.
+    /// </summary>
+    private bool HasCellAt(Vector2Int targetGrid)
+    {
+        Vector2 world = new Vector2(targetGrid.x * gridSize, targetGrid.y * EffectiveGridSizeY);
+        Collider2D[] buffer = new Collider2D[4];
+        int count = Physics2D.OverlapPointNonAlloc(world, buffer);
+        for (int i = 0; i < count; i++)
+            if (buffer[i].GetComponent<PaintCell>() != null)
+                return true;
+        return false;
     }
 
     void HandleCooldownColor()

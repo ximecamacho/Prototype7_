@@ -3,10 +3,22 @@ using UnityEngine;
 
 public class Spawner : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    public Transform[] spawnPoints;
-    public GameObject [] projectilePrefabs;
+    public Transform[]  spawnPoints;
+    public GameObject[] projectilePrefabs;
     private float spawnInterval = 1.0f;
+
+    void OnEnable()
+    {
+        PaintCell.OnWin  += StopSpawning;
+        PaintCell.OnLose += StopSpawning;
+    }
+
+    void OnDisable()
+    {
+        PaintCell.OnWin  -= StopSpawning;
+        PaintCell.OnLose -= StopSpawning;
+    }
+
     void Start()
     {
         StartCoroutine(spawnProj(spawnInterval));
@@ -15,20 +27,16 @@ public class Spawner : MonoBehaviour
     private IEnumerator spawnProj(float interval)
     {
         yield return new WaitForSeconds(interval);
-        int randProj = Random.Range(0, projectilePrefabs.Length);
-        int randSpawPoint = Random.Range(0, spawnPoints.Length);
-        Instantiate(projectilePrefabs[randProj], spawnPoints[randSpawPoint].position, transform.rotation);
+        int randProj      = Random.Range(0, projectilePrefabs.Length);
+        int randSpawnPoint = Random.Range(0, spawnPoints.Length);
+        Instantiate(projectilePrefabs[randProj], spawnPoints[randSpawnPoint].position, transform.rotation);
         StartCoroutine(spawnProj(spawnInterval));
-        
     }
 
-
-    // Update is called once per frame
-    void Update()
+    /// <summary>Stops the spawn coroutine immediately when the game ends.</summary>
+    private void StopSpawning()
     {
-
-        
-            
-        
+        StopAllCoroutines();
+        enabled = false;
     }
 }
